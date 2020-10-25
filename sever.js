@@ -1,6 +1,6 @@
 'use strict';
 
-// Defining Application Dependencies 
+
 const express = require('express');
 const cors = require('cors')
 require('dotenv').config()
@@ -13,7 +13,7 @@ console.log(PORT);
 const app = express();
 app.use(cors());
 
-// Routes
+
 app.get('/', (reqeust, response)=>{
     response.send('Home Page Welcome to express');
 });
@@ -28,22 +28,21 @@ app.get('/location', (request, response)=>{
     response.json(location);
 });
 
-app.get('/restaurant', (request, response)=>{
-    const restaurantsData = require('./data/restaurants.json');
-    // console.log(restaurantsData);
-    let data = [];
-    restaurantsData.nearby_restaurants.forEach(restaurant => {
-        data.push(new Restaurant(restaurant));
-    });
-    response.json(data);
-});
+// app.get('/restaurant', (request, response)=>{
+//     const restaurantsData = require('./data/restaurants.json');
+//     let data = [];
+//     restaurantsData.nearby_restaurants.forEach(restaurant => {
+//         data.push(new Restaurant(restaurant));
+//     });
+//     response.json(data);
+// });
 
 app.use('*', (request, resp)=>{
     resp.status(404).send('Not found');
 })
 
 
-// Constructor
+
 function Location(city, locationData){
     this.search_query=city;
     this.formated_query=locationData.display_name;
