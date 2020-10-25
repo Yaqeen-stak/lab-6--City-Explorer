@@ -16,7 +16,7 @@ app.get('/', (reqeust, response) => {
 });
 
 app.get('/location', (request, response) => {
-    const locationData = require('data/location.json');
+    const locationData = require('./data/location.json');
     const city = request.query.city;
     let location;
     locationData.forEach(locationData => {
