@@ -6,12 +6,12 @@ function Location(city, locationData) {
     this.latitude = locationData.lat;
     this.longitude = locationData.lon;
 }
-function Weather(weatherData) {
+function Weather(info,time) {
     // this.data = weatherData.city_name;
     // this.city_name = weatherData.data.location.city;
     // this.timezone=weatherData.timezone;
-    this.foreCast=description;
-    this.time=datetime;
+    this.foreCast=info;
+    this.time=time;
 }
 // Defining Application Dependencies
 const express = require('express');
@@ -32,18 +32,31 @@ app.get('/location', (request, response) => {
         location = new Location(city, locationData);
     });
     response.json(location);
+    handlErrors(response);
 });
 app.get('/weather', (request, response)=>{
     const weatherData = require('./data/weather.json');
     let weather = [];
+    // const des=reqeust.query.weather.description;
+
     weatherData.data.forEach(element => {
         let info=element.weather.description;
         let time=element.datetime;
         weather.push(new Weather(info,time));
     });
     response.json(weather);
+    handlErrors(response);
 });
 app.use('*', (request, resp) => {
   resp.status(404).send('Not found');
 });
+
+function handlErrors (response){
+    if (response.status=== 500){
+    resp.status(500).send('Sorry, something went wrong');
+    }
+}
+  
+ 
+
 app.listen(PORT, () => console.log(`App is listening on port ${PORT}`));
