@@ -91,7 +91,7 @@ function getWeather (request, response){
 function getTrails(request,response){
     const latitude=request.query.latitude;
     const longitude=request.query.longitude;
-    const url=`https://www.hikingproject.com/data/get-trails?lat=${longitude}&lon=${longitude}&key=${TRAIL_API_KEY}`;
+    const url=`https://www.hikingproject.com/data/get-trails?lat=${latitude}&lon=${longitude}&key=${TRAIL_API_KEY}`;
     let trailsArray=[];
     superagent.get(url).then(trailsData =>{
      trailsData.body.trails.map((data =>{
