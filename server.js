@@ -9,8 +9,14 @@ function Location(city, locationData) {
 
 }
 function Weather(weatherData) {
+
+    this.forecast=weatherData.weather.description;
+    this.time=weatherData.datetime;
+   
+
     this.foreCast = weatherData.weather.description;
     this.time = weatherData.datetime;
+
 
 }
 function Trails(trailsData) {
@@ -107,25 +113,31 @@ function getWeather(request, response) {
         // handlErrors(response);
         // return (weather);
 
+    
+    })
+    .catch(() => {
+        response.status(500).send('Weather Error');
+      })
+}
+function getTrails(request,response){
+    const latitude=request.query.latitude;
+    const longitude=request.query.longitude;
+    const url=`https://www.hikingproject.com/data/get-trails?lat=${longitude}&lon=${longitude}&key=${TRAIL_API_KEY}`;
+    let trailsArray=[];
+    superagent.get(url).then(trailsData =>{
+     trailsData.body.trails.map((data =>{
+         console.log(data);
+         trailsArray.push(new Trails(data));
+     }))
+     response.json(trailsArray)
+    //  handlErrors(response);
+
+
     }).catch(() => {
             response.status(500).send('Weather Error');
         })
     }
-function getTrails(request, response) {
-    const latitude = request.query.latitude;
-    const longitude = request.query.longitude;
-    const url = `https://www.hikingproject.com/data/get-trails?lat=${longitude}&lon=${longitude}&key=${TRAIL_API_KEY}`;
-    let trailsArray = [];
-    superagent.get(url).then(trailsData => {
-        trailsData.body.trails.map((data => {
-            trailsArray.push(new Trails(data));
-        }))
-        response.json(trailsArray)
-        //  handlErrors(response);
-    }).catch(() => {
-        response.status(500).send('Error');
-    })
-}
+
 function notFound(request, response) {
     response.status(404).send('Not found');
 }
