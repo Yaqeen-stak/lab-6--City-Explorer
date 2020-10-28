@@ -40,3 +40,19 @@ Start time: ___2_pm_
 Finish time: __10 pm___
 
 Actual time needed to complete: __8 hrs ___
+
+
+
+
+
+
+
+Number and name of feature: _____city explorer___________________________
+
+Estimate of time needed to complete: _8 hrs____
+
+Start time: _2 pm____
+
+Finish time: _10 pm____
+
+Actual time needed to complete: __8 hrs___
