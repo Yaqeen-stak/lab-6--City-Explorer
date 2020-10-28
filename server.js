@@ -8,7 +8,7 @@ function Location(city, locationData) {
     
 }
 function Weather(weatherData) {
-    this.foreCast=weatherData.weather.description;
+    this.forecast=weatherData.weather.description;
     this.time=weatherData.datetime;
    
 }
@@ -95,6 +95,7 @@ function getTrails(request,response){
     let trailsArray=[];
     superagent.get(url).then(trailsData =>{
      trailsData.body.trails.map((data =>{
+         console.log(data);
          trailsArray.push(new Trails(data));
      }))
      response.json(trailsArray)
