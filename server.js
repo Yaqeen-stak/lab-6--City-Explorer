@@ -12,8 +12,6 @@ function Weather(weatherData) {
 
     this.forecast = weatherData.weather.description;
     this.time = weatherData.datetime;
-
-
     this.foreCast = weatherData.weather.description;
     this.time = weatherData.datetime;
 
@@ -27,6 +25,13 @@ function Movies(moviesData){
     this.image_url='https://image.tmdb.org/t/p/w500/${moviesData.poster_path}';
     this.popularity=moviesData.popularity;
     this.released_on=moviesData.released_on
+}
+function Yelp(yelpData){
+    this.name=yelpData.name;
+    this.image_url=yelpData.image_url;
+    this.price=yelpData.price;
+    this.rating=yelpData.rating;
+    this.url=yelpData.url;
 }
 function Trails(trailsData) {
     this.name = trailsData.name;
@@ -52,7 +57,8 @@ const DATABASE = process.env.DATABASE;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
-const MOVIE_API_KEY=process.env.MOVIE_API_KEY;
+const MOVIE_API_KEY =process.env.MOVIE_API_KEY;
+const YELP_API_KEY=process.env.YELP_API_KEY;
 
 const client = new pg.Client(DATABASE);
 
@@ -65,6 +71,7 @@ app.get('/location', getLocation);
 app.get('/weather', getWeather);
 app.get('/trails', getTrails);
 app.get('/movies',getMovies);
+app.get('/yelp',getYelp);
 // app.get('/add-location',getLocation);
 
 // app.get('/get-locations', (req, res) => {
@@ -142,7 +149,7 @@ function getWeather(request, response) {
 function getMovies(request,response) {
     const city=request.query.search_query;
    
-    const url =`https://api.themoviedb.org/3/movie/550?api_key=MOVIE_API_KEY`
+    const url =`https://api.themoviedb.org/3/movie/550?api_key=${MOVIE_API_KEY}`
     let moviesArray=[];
     superagent.get(url).then(moviesData=>{
         moviesData.body.movies((data=>{
@@ -153,7 +160,32 @@ function getMovies(request,response) {
         response.status(500).send('Movies Error');
     })
 }
-
+function getYelp(request,response){
+    const city=request.query.search_query;
+    const latitude = request.query.latitude;
+    const longitude = request.query.longitude;  
+    const url =' https://api.yelp.com/v3/businesses/search'
+    const page=request.query.page;
+    let offset=5*(page-1);
+    const queryParams={
+        location:region,
+        latitude:latitude,
+        longitude:longitude,
+        api_key:YELP_API_KEY,
+        offset:offset,
+        limit:5,
+    };
+    let yelpArray=[];
+    superagent.get(url).query(queryParams).then(data=>{
+        yelpArray.body.yelp((data=>{
+            yelpArray.push(new Yelp(data));
+        }))
+        response.json(yelpArray)
+    }).catch(()=>{
+        response.status(500).send('Yelp Error');
+ 
+    })
+}
 function getTrails(request, response) {
     const latitude = request.query.latitude;
     const longitude = request.query.longitude;
