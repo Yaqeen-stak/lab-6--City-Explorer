@@ -10,14 +10,23 @@ function Location(city, locationData) {
 }
 function Weather(weatherData) {
 
-    this.forecast=weatherData.weather.description;
-    this.time=weatherData.datetime;
-   
+    this.forecast = weatherData.weather.description;
+    this.time = weatherData.datetime;
+
 
     this.foreCast = weatherData.weather.description;
     this.time = weatherData.datetime;
 
 
+}
+function Movies(moviesData){
+    this.title=moviesData.title;
+    this.overview=moviesData.overview;
+    this.average_votes=moviesData.average_votes;
+    this.total_votes=moviesData.total_votes;
+    this.image_url='https://image.tmdb.org/t/p/w500/${moviesData.poster_path}';
+    this.popularity=moviesData.popularity;
+    this.released_on=moviesData.released_on
 }
 function Trails(trailsData) {
     this.name = trailsData.name;
@@ -43,6 +52,7 @@ const DATABASE = process.env.DATABASE;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
+const MOVIE_API_KEY=process.env.MOVIE_API_KEY;
 
 const client = new pg.Client(DATABASE);
 
@@ -54,14 +64,15 @@ app.get('/', welcomePage);
 app.get('/location', getLocation);
 app.get('/weather', getWeather);
 app.get('/trails', getTrails);
-app.get('/add-location',getLocation);
+app.get('/movies',getMovies);
+// app.get('/add-location',getLocation);
 
-app.get('/get-locations', (req, res) => {
-    const location = 'SELECT * FROM location ;';
-    client.query(location).then(result => {
-        res.status(200).json(result.rows);
-    });
-});
+// app.get('/get-locations', (req, res) => {
+//     const location = 'SELECT * FROM location ;';
+//     client.query(location).then(result => {
+//         res.status(200).json(result.rows);
+//     });
+// });
 app.use('*', notFound);
 function handlErrors(response) {
     if (response.status === 500) {
@@ -78,23 +89,32 @@ function welcomePage(request, response) {
 function getLocation(request, response) {
     // const locationData = require('./data/location.json');
     const city = request.query.city;
-    const url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${city}&format=json`;
-    let locationArr = [];
-    superagent.get(url).then(locationData => {
-        locationArr.push(new Location(city, locationData.body));
-        // response.json(location);
-        const newValues = 'INSERT INTO location (search_query,formated_query,latitude,longitude) VALUES($1,$2,$3,$4);';
-        const saveValues = [locationArr[0].search_query, locationArr[0].formated_query, locationArr[0].latitude, locationArr[0].longitude];
-        //response.json(location);
-        client.query(newValues, saveValues).then(data => {
-            response.status(200).json(data);
-        });
-        // .catch(console.error);
+    const location = 'SELECT * FROM location WHERE search_query=$1;';
+    const safvar = [city];
+    client.query(location).then(result => {
+        if (!(result.rowCount === 0)) {
+            res.status(200).json(result.rows[0]);
+        } else {
+            const url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${city}&format=json`;
+            let locationArr;
+            superagent.get(url).then(locationData => {
+                locationArr = (new Location(city, locationData.body));
+                // response.json(location);
+                const newValues = 'INSERT INTO location (search_query,formated_query,latitude,longitude) VALUES($1,$2,$3,$4);';
+                const saveValues = [locationArr[0].search_query, locationArr[0].formated_query, locationArr[0].latitude, locationArr[0].longitude];
+                //response.json(location);
+                client.query(newValues, saveValues).then(data => {
+                    response.status(200).json(data);
+                });
+                
 
+            });
+        }
     });
-}   
+}  
 
-       
+
+
 
 function getWeather(request, response) {
     // const weatherData = require('./data/weather.json');
@@ -113,30 +133,45 @@ function getWeather(request, response) {
         // handlErrors(response);
         // return (weather);
 
-    
+
     })
-    .catch(() => {
-        response.status(500).send('Weather Error');
-      })
+        .catch(() => {
+            response.status(500).send('Weather Error');
+        })
 }
-function getTrails(request,response){
-    const latitude=request.query.latitude;
-    const longitude=request.query.longitude;
-    const url=`https://www.hikingproject.com/data/get-trails?lat=${latitude}&lon=${longitude}&key=${TRAIL_API_KEY}`;
-    let trailsArray=[];
-    superagent.get(url).then(trailsData =>{
-     trailsData.body.trails.map((data =>{
-         console.log(data);
-         trailsArray.push(new Trails(data));
-     }))
-     response.json(trailsArray)
-    //  handlErrors(response);
+function getMovies(request,response) {
+    const city=request.query.search_query;
+   
+    const url =`https://api.themoviedb.org/3/movie/550?api_key=MOVIE_API_KEY`
+    let moviesArray=[];
+    superagent.get(url).then(moviesData=>{
+        moviesData.body.movies((data=>{
+         moviesArray.push(new Movies(data));   
+        }))
+        response.json(moviesArray)
+    }).catch(()=>{
+        response.status(500).send('Movies Error');
+    })
+}
+
+function getTrails(request, response) {
+    const latitude = request.query.latitude;
+    const longitude = request.query.longitude;
+    const url = `https://www.hikingproject.com/data/get-trails?lat=${latitude}&lon=${longitude}&key=${TRAIL_API_KEY}`;
+    let trailsArray = [];
+    superagent.get(url).then(trailsData => {
+        trailsData.body.trails.map((data => {
+            console.log(data);
+            trailsArray.push(new Trails(data));
+        }))
+        response.json(trailsArray)
+        //  handlErrors(response);
 
 
     }).catch(() => {
-            response.status(500).send('Weather Error');
-        })
-    }
+        response.status(500).send('Weather Error');
+    })
+}
 
 function notFound(request, response) {
     response.status(404).send('Not found');
@@ -146,5 +181,5 @@ function notFound(request, response) {
 client.connect().then(() => {
     app.listen(PORT, () => console.log(`Listening to port ${PORT}`));
 }).catch(error => {
-        console.log('error', error)
-    });
+    console.log('error', error)
+});
