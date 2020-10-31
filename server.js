@@ -17,21 +17,21 @@ function Weather(weatherData) {
 
 
 }
-function Movies(moviesData){
-    this.title=moviesData.title;
-    this.overview=moviesData.overview;
-    this.average_votes=moviesData.average_votes;
-    this.total_votes=moviesData.total_votes;
-    this.image_url='https://image.tmdb.org/t/p/w500/${moviesData.poster_path}';
-    this.popularity=moviesData.popularity;
-    this.released_on=moviesData.released_on
+function Movies(moviesData) {
+    this.title = moviesData.title;
+    this.overview = moviesData.overview;
+    this.average_votes = moviesData.average_votes;
+    this.total_votes = moviesData.total_votes;
+    this.image_url = 'https://image.tmdb.org/t/p/w500/${moviesData.poster_path}';
+    this.popularity = moviesData.popularity;
+    this.released_on = moviesData.released_on
 }
-function Yelp(yelpData){
-    this.name=yelpData.name;
-    this.image_url=yelpData.image_url;
-    this.price=yelpData.price;
-    this.rating=yelpData.rating;
-    this.url=yelpData.url;
+function Yelp(yelpData) {
+    this.name = yelpData.name;
+    this.image_url = yelpData.image_url;
+    this.price = yelpData.price;
+    this.rating = yelpData.rating;
+    this.url = yelpData.url;
 }
 function Trails(trailsData) {
     this.name = trailsData.name;
@@ -56,8 +56,8 @@ const DATABASE_URL = process.env.DATABASE_URL;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
-const MOVIE_API_KEY =process.env.MOVIE_API_KEY;
-const YELP_API_KEY=process.env.YELP_API_KEY;
+const MOVIE_API_KEY = process.env.MOVIE_API_KEY;
+const YELP_API_KEY = process.env.YELP_API_KEY;
 
 const client = new pg.Client(DATABASE_URL);
 console.log(DATABASE_URL)
@@ -69,7 +69,9 @@ app.get('/', welcomePage);
 app.get('/location', getLocation);
 app.get('/weather', getWeather);
 app.get('/trails', getTrails);
-
+app.get('/movies', getMovies);
+app.get('/yelp', getYelp);
+app.use('*', notFound);
 
 // app.get('/get-locations', (req, res) => {
 //     const location = 'SELECT * FROM location ;';
@@ -77,7 +79,7 @@ app.get('/trails', getTrails);
 //         res.status(200).json(result.rows);
 //     });
 // });
-app.use('*', notFound);
+
 function handlErrors(response) {
     if (response.status === 500) {
         resp.status(500).send('Sorry, something went wrong');
@@ -95,7 +97,7 @@ function getLocation(request, response) {
     const city = request.query.city;
     const location = 'SELECT * FROM location WHERE search_query=$1;';
     const safvar = [city];
-    client.query(location,safvar).then(result => {
+    client.query(location, safvar).then(result => {
         if (!(result.rowCount === 0)) {
             response.status(200).json(result.rows[0]);
         } else {
@@ -110,12 +112,12 @@ function getLocation(request, response) {
                 client.query(newValues, saveValues).then(data => {
                     response.status(200).json(location);
                 })
-                
 
-            }).catch(()=> response.status(404).send('not found'));
+
+            }).catch(() => response.status(404).send('not found'));
         }
     });
-}  
+}
 
 
 
@@ -143,46 +145,53 @@ function getWeather(request, response) {
             response.status(500).send('Weather Error');
         })
 }
-function getMovies(request,response) {
-    const city=request.query.search_query;
-   
-    const url =`https://api.themoviedb.org/3/movie/550?api_key=${MOVIE_API_KEY}`
-    let moviesArray=[];
-    superagent.get(url).then(moviesData=>{
-        moviesData.body.movies((data=>{
-         moviesArray.push(new Movies(data));   
+function getMovies(request, response) {
+    const city = request.query.search_query;
+    const page = require.query.page;
+    const url = `https://api.themoviedb.org/3/movie/550?api_key=${MOVIE_API_KEY}`
+    let queryParams = {
+        region: region,
+        page: page,
+        api_key: MOVIE_API_KEY,
+        format: 'json'
+    };
+    let movies = [];
+    superagent.get(url).query(queryParams).then(moviesData => {
+        movies = moviesData.body.movies((data => {
+            return (new Movies(data));
         }))
-        response.json(moviesArray)
-    }).catch(()=>{
+        response.json(movies);
+    }).catch(() => {
         response.status(500).send('Movies Error');
     })
 }
-function getYelp(request,response){
-    const city=request.query.search_query;
+function getYelp(request, response) {
+    const city = request.query.search_query;
     const latitude = request.query.latitude;
-    const longitude = request.query.longitude;  
-    const url =' https://api.yelp.com/v3/businesses/search'
-    const page=request.query.page;
-    let offset=5*(page-1);
-    const queryParams={
-        location:region,
-        latitude:latitude,
-        longitude:longitude,
-        api_key:YELP_API_KEY,
-        offset:offset,
-        limit:5,
+    const longitude = request.query.longitude;
+    const url = ' https://api.yelp.com/v3/businesses/search'
+    const page = request.query.page;
+    let offset = 5 * (page - 1);
+    const queryParams = {
+        location: city,
+        latitude: latitude,
+        longitude: longitude,
+        api_key: YELP_API_KEY,
+        offset: offset,
+        limit: 5,
     };
-    let yelpArray=[];
-    superagent.get(url).query(queryParams).then(data=>{
-        yelpArray.body.yelp((data=>{
-            yelpArray.push(new Yelp(data));
-        }))
-        response.json(yelpArray)
-    }).catch(()=>{
-        response.status(500).send('Yelp Error');
- 
-    })
+    let yelp = [];
+    superagent.get(url).query(queryParams).set('Authorization', `Bearer ${YELP_API_KEY}`).then(data => {
+    yelp=data.body.businesses.map((data)=>{
+    return (new Yelp(data));
+    });
+    response.json(yelp)
+}).catch (() => {
+    response.status(500).send('Yelp Error');
+
+})
 }
+
 function getTrails(request, response) {
     const latitude = request.query.latitude;
     const longitude = request.query.longitude;
