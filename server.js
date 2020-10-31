@@ -27,19 +27,18 @@ function Trails(trailsData) {
 }
 // Defining Application Dependencies
 const express = require('express');
-const { request, response } = require('express');
 const superagent = require('superagent');
 const cors = require('cors');
 const pg = require('pg');
 require('dotenv').config();
 const PORT = process.env.PORT || 3000;
-const DATABASE = process.env.DATABASE;
+const DATABASE_URL = process.env.DATABASE_URL;
 const GEOCODE_API_KEY = process.env.GEOCODE_API_KEY;
 const WEATHER_API_KEY = process.env.WEATHER_API_KEY;
 const TRAIL_API_KEY = process.env.TRAIL_API_KEY;
 
-const client = new pg.Client(DATABASE);
-
+const client = new pg.Client(DATABASE_URL);
+console.log(DATABASE_URL)
 
 const app = express();
 app.use(cors());
@@ -48,14 +47,14 @@ app.get('/', welcomePage);
 app.get('/location', getLocation);
 app.get('/weather', getWeather);
 app.get('/trails', getTrails);
-app.get('/add-location',getLocation);
 
-app.get('/get-locations', (req, res) => {
-    const location = 'SELECT * FROM location ;';
-    client.query(location).then(result => {
-        res.status(200).json(result.rows);
-    });
-});
+
+// app.get('/get-locations', (req, res) => {
+//     const location = 'SELECT * FROM location ;';
+//     client.query(location).then(result => {
+//         res.status(200).json(result.rows);
+//     });
+// });
 app.use('*', notFound);
 function handlErrors(response) {
     if (response.status === 500) {
@@ -72,19 +71,27 @@ function welcomePage(request, response) {
 function getLocation(request, response) {
     // const locationData = require('./data/location.json');
     const city = request.query.city;
-    const url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${city}&format=json`;
-    let locationArr = [];
-    superagent.get(url).then(locationData => {
-        locationArr.push(new Location(city, locationData.body));
-        // response.json(location);
-        const newValues = 'INSERT INTO location (search_query,formated_query,latitude,longitude) VALUES($1,$2,$3,$4);';
-        const saveValues = [locationArr[0].search_query, locationArr[0].formated_query, locationArr[0].latitude, locationArr[0].longitude];
-        //response.json(location);
-        client.query(newValues, saveValues).then(data => {
-            response.status(200).json(data);
-        });
-        // .catch(console.error);
+    const location = 'SELECT * FROM location WHERE search_query=$1;';
+    const safvar = [city];
+    client.query(location,safvar).then(result => {
+        if (!(result.rowCount === 0)) {
+            response.status(200).json(result.rows[0]);
+        } else {
+            const url = `https://eu1.locationiq.com/v1/search.php?key=${GEOCODE_API_KEY}&q=${city}&format=json`;
+            let location;
+            superagent.get(url).then(locationData => {
+                location = (new Location(city, locationData.body));
+                // response.json(location);
+                const newValues = 'INSERT INTO location (search_query,display_name,lat,lon) VALUES($1,$2,$3,$4);';
+                const saveValues = [location.search_query, location.formated_query, location.latitude, location.longitude];
+                //response.json(location);
+                client.query(newValues, saveValues).then(data => {
+                    response.status(200).json(location);
+                })
+                
 
+            }).catch(()=> response.status(404).send('not found'));
+        }
     });
 }   
 
@@ -130,7 +137,6 @@ function notFound(request, response) {
     response.status(404).send('Not found');
 }
 
-//   app.listen(PORT, () => console.log(`App is listening on port ${PORT}`));
 client.connect().then(() => {
     app.listen(PORT, () => console.log(`Listening to port ${PORT}`));
 }).catch(error => {
